@@ -1,14 +1,37 @@
-# Secretos
+# Secretos y variables de entorno (solo se versiona la plantilla)
 .env
+.env.*
 **/.env
+**/.env.*
 !.env.example
 
-# Carpetas de trabajo del robot
+# Carpetas de trabajo del robot (PDFs de entrada y salida)
 Input/
 Output/
 **/Input/
 **/Output/
 
-# Cache local de UiPath Studio y capturas de excepciones
-uipath_workflow/.local/
-uipath_workflow/Exceptions_Screenshots/*.png
+# UiPath Studio: cache local, paquetes y capturas generadas
+**/.local/
+**/.screenshots/
+*.nupkg
+uipath_workflow/Exceptions_Screenshots/*
+!uipath_workflow/Exceptions_Screenshots/placeholder.txt
+uipath_workflow/Data/Temp/*
+!uipath_workflow/Data/Temp/placeholder.txt
+
+# Logs y temporales
+*.log
+*.tmp
+*.bak
+
+# Sistema operativo
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Editores y herramientas locales
+.vscode/
+.idea/
+.claude/
+graphify-out/
