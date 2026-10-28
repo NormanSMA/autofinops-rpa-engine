@@ -1,0 +1,148 @@
+<Activity mc:Ignorable="sap sap2010" x:Class="Workflows_Extract_Invoice_PDF" sap2010:WorkflowViewState.IdRef="ActivityBuilder_1" xmlns="http://schemas.microsoft.com/netfx/2009/xaml/activities" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:s="clr-namespace:System;assembly=System.Private.CoreLib" xmlns:sap="http://schemas.microsoft.com/netfx/2009/xaml/activities/presentation" xmlns:sap2010="http://schemas.microsoft.com/netfx/2010/xaml/activities/presentation" xmlns:scg="clr-namespace:System.Collections.Generic;assembly=System.Private.CoreLib" xmlns:sco="clr-namespace:System.Collections.ObjectModel;assembly=System.Private.CoreLib" xmlns:ui="http://schemas.uipath.com/workflow/activities" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <x:Members>
+    <x:Property Name="in_FilePath" Type="InArgument(x:String)" />
+    <x:Property Name="out_InvoiceNumber" Type="OutArgument(x:String)" />
+    <x:Property Name="out_Ruc" Type="OutArgument(x:String)" />
+    <x:Property Name="out_ProviderName" Type="OutArgument(x:String)" />
+    <x:Property Name="out_Currency" Type="OutArgument(x:String)" />
+    <x:Property Name="out_IssueDate" Type="OutArgument(s:DateTime)" />
+    <x:Property Name="out_Subtotal" Type="OutArgument(x:Decimal)" />
+    <x:Property Name="out_Iva" Type="OutArgument(x:Decimal)" />
+    <x:Property Name="out_Total" Type="OutArgument(x:Decimal)" />
+  </x:Members>
+  <VisualBasic.Settings>
+    <x:Null />
+  </VisualBasic.Settings>
+  <TextExpression.NamespacesForImplementation>
+    <sco:Collection x:TypeArguments="x:String">
+      <x:String>Microsoft.VisualBasic</x:String>
+      <x:String>System</x:String>
+      <x:String>System.Activities</x:String>
+      <x:String>System.Collections.Generic</x:String>
+      <x:String>System.Globalization</x:String>
+      <x:String>System.IO</x:String>
+      <x:String>System.Linq</x:String>
+      <x:String>System.Text.RegularExpressions</x:String>
+      <x:String>UiPath.Core</x:String>
+      <x:String>UiPath.Core.Activities</x:String>
+    </sco:Collection>
+  </TextExpression.NamespacesForImplementation>
+  <TextExpression.ReferencesForImplementation>
+    <sco:Collection x:TypeArguments="AssemblyReference">
+      <AssemblyReference>Microsoft.VisualBasic</AssemblyReference>
+      <AssemblyReference>System</AssemblyReference>
+      <AssemblyReference>System.Activities</AssemblyReference>
+      <AssemblyReference>System.Collections</AssemblyReference>
+      <AssemblyReference>System.Core</AssemblyReference>
+      <AssemblyReference>System.Linq</AssemblyReference>
+      <AssemblyReference>System.Private.CoreLib</AssemblyReference>
+      <AssemblyReference>System.Runtime</AssemblyReference>
+      <AssemblyReference>System.Text.RegularExpressions</AssemblyReference>
+      <AssemblyReference>UiPath.PDF.Activities</AssemblyReference>
+      <AssemblyReference>UiPath.System.Activities</AssemblyReference>
+    </sco:Collection>
+  </TextExpression.ReferencesForImplementation>
+  <Sequence DisplayName="Extract Invoice PDF" sap2010:WorkflowViewState.IdRef="Sequence_1">
+    <Sequence.Variables>
+      <Variable x:TypeArguments="x:String" Name="pdfText" />
+      <Variable x:TypeArguments="x:String" Name="issueDateText" />
+      <Variable x:TypeArguments="x:String" Name="totalText" />
+    </Sequence.Variables>
+    <ui:ReadPDFText DisplayName="Read PDF Text (invoice)" sap2010:WorkflowViewState.IdRef="ReadPDFText_1" FileName="[in_FilePath]" Range="All" Text="[pdfText]" />
+    <Assign DisplayName="Assign out_InvoiceNumber" sap2010:WorkflowViewState.IdRef="Assign_1">
+      <Assign.To>
+        <OutArgument x:TypeArguments="x:String">[out_InvoiceNumber]</OutArgument>
+      </Assign.To>
+      <Assign.Value>
+        <InArgument x:TypeArguments="x:String">[Regex.Match(pdfText, "Factura No:\s*(\S+)").Groups(1).Value.Trim]</InArgument>
+      </Assign.Value>
+    </Assign>
+    <Assign DisplayName="Assign out_Ruc" sap2010:WorkflowViewState.IdRef="Assign_2">
+      <Assign.To>
+        <OutArgument x:TypeArguments="x:String">[out_Ruc]</OutArgument>
+      </Assign.To>
+      <Assign.Value>
+        <InArgument x:TypeArguments="x:String">[Regex.Match(pdfText, "RUC:\s*(\S+)").Groups(1).Value.Trim]</InArgument>
+      </Assign.Value>
+    </Assign>
+    <Assign DisplayName="Assign out_ProviderName" sap2010:WorkflowViewState.IdRef="Assign_3">
+      <Assign.To>
+        <OutArgument x:TypeArguments="x:String">[out_ProviderName]</OutArgument>
+      </Assign.To>
+      <Assign.Value>
+        <InArgument x:TypeArguments="x:String">[Regex.Match(pdfText, "FACTURA\s+\S+\s*\r?\n(.+)").Groups(1).Value.Trim]</InArgument>
+      </Assign.Value>
+    </Assign>
+    <Assign DisplayName="Assign out_Currency" sap2010:WorkflowViewState.IdRef="Assign_4">
+      <Assign.To>
+        <OutArgument x:TypeArguments="x:String">[out_Currency]</OutArgument>
+      </Assign.To>
+      <Assign.Value>
+        <InArgument x:TypeArguments="x:String">[Regex.Match(pdfText, "Moneda:\s*(USD|NIO)").Groups(1).Value]</InArgument>
+      </Assign.Value>
+    </Assign>
+    <Assign DisplayName="Assign issueDateText" sap2010:WorkflowViewState.IdRef="Assign_5">
+      <Assign.To>
+        <OutArgument x:TypeArguments="x:String">[issueDateText]</OutArgument>
+      </Assign.To>
+      <Assign.Value>
+        <InArgument x:TypeArguments="x:String">[Regex.Match(pdfText, "Fecha:\s*(\d{4}-\d{2}-\d{2})").Groups(1).Value]</InArgument>
+      </Assign.Value>
+    </Assign>
+    <Assign DisplayName="Assign totalText" sap2010:WorkflowViewState.IdRef="Assign_6">
+      <Assign.To>
+        <OutArgument x:TypeArguments="x:String">[totalText]</OutArgument>
+      </Assign.To>
+      <Assign.Value>
+        <InArgument x:TypeArguments="x:String">[Regex.Match(pdfText, "(?m)^Total:\s*([\d.,]+)").Groups(1).Value]</InArgument>
+      </Assign.Value>
+    </Assign>
+    <If DisplayName="If the PDF is not a valid invoice" sap2010:WorkflowViewState.IdRef="If_1">
+      <If.Condition>
+        <InArgument x:TypeArguments="x:Boolean">[String.IsNullOrEmpty(out_InvoiceNumber) OrElse String.IsNullOrEmpty(out_Ruc) OrElse String.IsNullOrEmpty(out_Currency) OrElse String.IsNullOrEmpty(issueDateText) OrElse String.IsNullOrEmpty(totalText)]</InArgument>
+      </If.Condition>
+      <If.Then>
+        <Sequence DisplayName="Then" sap2010:WorkflowViewState.IdRef="Sequence_2">
+          <Throw DisplayName="Throw BRE-04 (not an invoice)" sap2010:WorkflowViewState.IdRef="Throw_1">
+            <Throw.Exception>
+              <InArgument x:TypeArguments="s:Exception">[New BusinessRuleException("BRE-04: El PDF no contiene los campos de una factura: " &amp; Path.GetFileName(in_FilePath))]</InArgument>
+            </Throw.Exception>
+          </Throw>
+        </Sequence>
+      </If.Then>
+    </If>
+    <Assign DisplayName="Assign out_IssueDate" sap2010:WorkflowViewState.IdRef="Assign_7">
+      <Assign.To>
+        <OutArgument x:TypeArguments="s:DateTime">[out_IssueDate]</OutArgument>
+      </Assign.To>
+      <Assign.Value>
+        <InArgument x:TypeArguments="s:DateTime">[DateTime.ParseExact(issueDateText, "yyyy-MM-dd", CultureInfo.InvariantCulture)]</InArgument>
+      </Assign.Value>
+    </Assign>
+    <Assign DisplayName="Assign out_Subtotal" sap2010:WorkflowViewState.IdRef="Assign_8">
+      <Assign.To>
+        <OutArgument x:TypeArguments="x:Decimal">[out_Subtotal]</OutArgument>
+      </Assign.To>
+      <Assign.Value>
+        <InArgument x:TypeArguments="x:Decimal">[Decimal.Parse(Regex.Match(pdfText, "Subtotal:\s*([\d.,]+)").Groups(1).Value.Replace(",", ""), CultureInfo.InvariantCulture)]</InArgument>
+      </Assign.Value>
+    </Assign>
+    <Assign DisplayName="Assign out_Iva" sap2010:WorkflowViewState.IdRef="Assign_9">
+      <Assign.To>
+        <OutArgument x:TypeArguments="x:Decimal">[out_Iva]</OutArgument>
+      </Assign.To>
+      <Assign.Value>
+        <InArgument x:TypeArguments="x:Decimal">[Decimal.Parse(Regex.Match(pdfText, "IVA:\s*([\d.,]+)").Groups(1).Value.Replace(",", ""), CultureInfo.InvariantCulture)]</InArgument>
+      </Assign.Value>
+    </Assign>
+    <Assign DisplayName="Assign out_Total" sap2010:WorkflowViewState.IdRef="Assign_10">
+      <Assign.To>
+        <OutArgument x:TypeArguments="x:Decimal">[out_Total]</OutArgument>
+      </Assign.To>
+      <Assign.Value>
+        <InArgument x:TypeArguments="x:Decimal">[Decimal.Parse(totalText.Replace(",", ""), CultureInfo.InvariantCulture)]</InArgument>
+      </Assign.Value>
+    </Assign>
+    <ui:LogMessage DisplayName="Log extracted invoice" sap2010:WorkflowViewState.IdRef="LogMessage_1" Level="Info" Message="[String.Format(CultureInfo.InvariantCulture, &quot;Extraida {0} | RUC {1} | {2} | Total {3:0.00}&quot;, out_InvoiceNumber, out_Ruc, out_Currency, out_Total)]" />
+  </Sequence>
+</Activity>

@@ -1,0 +1,39 @@
+{
+  "Settings": {
+    "logF_BusinessProcessName": "AutoFinOps",
+    "OrchestratorQueueName": "Invoices_Queue",
+    "OrchestratorQueueFolder": "Shared",
+    "InboxFolder": "Data\\Input\\Inbox",
+    "PendingFolder": "Data\\Input\\Pending",
+    "ProcessedFolder": "Data\\Output\\Processed",
+    "BusinessExceptionsFolder": "Data\\Output\\Business_Exceptions",
+    "PostgreSqlDsn": "AutoFinOps_PG",
+    "PGCredentialAssetName": "PG_Credential",
+    "BcnServiceUrl": "https://servicios.bcn.gob.ni/Tc_Servicio/ServicioTC.asmx",
+    "BcnTimeoutMs": 30000,
+    "MailEnabled": true,
+    "MailHost": "127.0.0.1",
+    "MailPort": 3143,
+    "MailFolder": "INBOX",
+    "MailCredentialAssetName": "Mail_Credential",
+    "MailSubjectFilter": "Factura|Invoice|Cobro"
+  },
+  "Constants": {
+    "MaxRetryNumber": 0,
+    "MaxConsecutiveSystemExceptions": 0,
+    "ExScreenshotsFolderPath": "Exceptions_Screenshots",
+    "LogMessage_GetTransactionData": "Processing Transaction Number: ",
+    "LogMessage_GetTransactionDataError": "Error getting transaction data for Transaction Number: ",
+    "LogMessage_Success": "Transaction Successful.",
+    "LogMessage_BusinessRuleException": "Business rule exception.",
+    "LogMessage_ApplicationException": "System exception.",
+    "ExceptionMessage_ConsecutiveErrors": "The maximum number of consecutive system exceptions was reached. ",
+    "RetryNumberGetTransactionItem": 2,
+    "RetryNumberSetTransactionStatus": 2,
+    "ShouldMarkJobAsFaulted": false,
+    "IvaRate": 0.15,
+    "IrRate": 0.02,
+    "IrThresholdNio": 1000.00,
+    "TaxTolerance": 0.05
+  }
+}

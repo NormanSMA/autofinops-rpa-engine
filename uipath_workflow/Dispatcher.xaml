@@ -1,0 +1,170 @@
+<Activity mc:Ignorable="sap sap2010" x:Class="Dispatcher" sap2010:WorkflowViewState.IdRef="ActivityBuilder_1" xmlns="http://schemas.microsoft.com/netfx/2009/xaml/activities" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:s="clr-namespace:System;assembly=System.Private.CoreLib" xmlns:sap="http://schemas.microsoft.com/netfx/2009/xaml/activities/presentation" xmlns:sap2010="http://schemas.microsoft.com/netfx/2010/xaml/activities/presentation" xmlns:sc="clr-namespace:System.Collections;assembly=System.Private.CoreLib" xmlns:scg="clr-namespace:System.Collections.Generic;assembly=System.Private.CoreLib" xmlns:sco="clr-namespace:System.Collections.ObjectModel;assembly=System.Private.CoreLib" xmlns:snm="clr-namespace:System.Net.Mail;assembly=System.Net.Mail" xmlns:ss="clr-namespace:System.Security;assembly=System.Private.CoreLib" xmlns:ui="http://schemas.uipath.com/workflow/activities" xmlns:umae="clr-namespace:UiPath.Mail.Activities.Enums;assembly=UiPath.Mail.Activities" xmlns:usau="clr-namespace:UiPath.Shared.Activities.Utils;assembly=UiPath.Mail.Activities" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <VisualBasic.Settings>
+    <x:Null />
+  </VisualBasic.Settings>
+  <TextExpression.NamespacesForImplementation>
+    <sco:Collection x:TypeArguments="x:String">
+      <x:String>Microsoft.VisualBasic</x:String>
+      <x:String>System</x:String>
+      <x:String>System.Activities</x:String>
+      <x:String>System.Collections.Generic</x:String>
+      <x:String>System.Globalization</x:String>
+      <x:String>System.IO</x:String>
+      <x:String>System.Linq</x:String>
+      <x:String>System.Net.Mail</x:String>
+      <x:String>System.Security</x:String>
+      <x:String>System.Text.RegularExpressions</x:String>
+      <x:String>UiPath.Core</x:String>
+      <x:String>UiPath.Core.Activities</x:String>
+      <x:String>UiPath.Mail</x:String>
+      <x:String>UiPath.Mail.Activities</x:String>
+      <x:String>UiPath.Mail.IMAP.Activities</x:String>
+    </sco:Collection>
+  </TextExpression.NamespacesForImplementation>
+  <TextExpression.ReferencesForImplementation>
+    <sco:Collection x:TypeArguments="AssemblyReference">
+      <AssemblyReference>Microsoft.VisualBasic</AssemblyReference>
+      <AssemblyReference>System</AssemblyReference>
+      <AssemblyReference>System.Activities</AssemblyReference>
+      <AssemblyReference>System.Collections</AssemblyReference>
+      <AssemblyReference>System.Core</AssemblyReference>
+      <AssemblyReference>System.Linq</AssemblyReference>
+      <AssemblyReference>System.Net.Mail</AssemblyReference>
+      <AssemblyReference>System.Private.CoreLib</AssemblyReference>
+      <AssemblyReference>System.Runtime</AssemblyReference>
+      <AssemblyReference>System.Text.RegularExpressions</AssemblyReference>
+      <AssemblyReference>UiPath.Mail</AssemblyReference>
+      <AssemblyReference>UiPath.Mail.Activities</AssemblyReference>
+      <AssemblyReference>UiPath.System.Activities</AssemblyReference>
+    </sco:Collection>
+  </TextExpression.ReferencesForImplementation>
+  <Sequence sap2010:Annotation.AnnotationText="Dispatcher (RF-01): recoge facturas PDF del correo IMAP o del buzon simulado Data\Input\Inbox, las deja en Data\Input\Pending y crea un elemento por PDF en Invoices_Queue." DisplayName="Dispatcher" sap2010:WorkflowViewState.IdRef="Sequence_1">
+    <Sequence.Variables>
+      <Variable x:TypeArguments="scg:Dictionary(x:String, x:Object)" Name="Config" />
+      <Variable x:TypeArguments="scg:List(snm:MailMessage)" Name="mailMessages" />
+      <Variable x:TypeArguments="x:Int32" Default="0" Name="queuedCount" />
+    </Sequence.Variables>
+    <ui:InvokeWorkflowFile ArgumentsVariable="{x:Null}" ContinueOnError="{x:Null}" DisplayName="Invoke InitAllSettings" sap2010:WorkflowViewState.IdRef="InvokeWorkflowFile_1" UnSafe="False" WorkflowFileName="Framework\InitAllSettings.xaml">
+      <ui:InvokeWorkflowFile.Arguments>
+        <InArgument x:TypeArguments="x:String" x:Key="in_ConfigFile">Data\Config.json</InArgument>
+        <InArgument x:TypeArguments="s:String[]" x:Key="in_ConfigSections">[{"Settings", "Constants"}]</InArgument>
+        <OutArgument x:TypeArguments="scg:Dictionary(x:String, x:Object)" x:Key="out_Config">[Config]</OutArgument>
+      </ui:InvokeWorkflowFile.Arguments>
+    </ui:InvokeWorkflowFile>
+    <ui:CreateDirectory ContinueOnError="{x:Null}" Output="{x:Null}" DisplayName="Create Folder Pending" sap2010:WorkflowViewState.IdRef="CreateDirectory_1" Path="[Config(&quot;PendingFolder&quot;).ToString]" />
+    <If DisplayName="If IMAP mail is enabled" sap2010:WorkflowViewState.IdRef="If_1">
+      <If.Condition>
+        <InArgument x:TypeArguments="x:Boolean">[Convert.ToBoolean(Config("MailEnabled"), CultureInfo.InvariantCulture)]</InArgument>
+      </If.Condition>
+      <If.Then>
+        <Sequence DisplayName="Then: read IMAP mailbox" sap2010:WorkflowViewState.IdRef="Sequence_2">
+          <Sequence.Variables>
+            <Variable x:TypeArguments="x:String" Name="mailUser" />
+            <Variable x:TypeArguments="ss:SecureString" Name="mailPassword" />
+          </Sequence.Variables>
+          <ui:GetRobotCredential DisplayName="Get Credential Mail_Credential" sap2010:WorkflowViewState.IdRef="GetRobotCredential_1" FolderPath="[Config(&quot;OrchestratorQueueFolder&quot;).ToString]" AssetName="[Config(&quot;MailCredentialAssetName&quot;).ToString]" CacheStrategy="None" Password="[mailPassword]" Username="[mailUser]" />
+          <ui:GetIMAPMailMessages ClientName="{x:Null}" ClientVersion="{x:Null}" DeleteMessages="{x:Null}" FilterExpression="{x:Null}" Password="{x:Null}" TimeoutMS="{x:Null}" UseOAuth="{x:Null}" ConnectionMode="Undefined" CreatedAfterSolutionSupport="True" DisplayName="Get IMAP Email List" Email="[mailUser]" EnableSSL="True" FilterExpressionCharacterSet="US-ASCII" IgnoreCRL="False" MailFolder="[Config(&quot;MailFolder&quot;).ToString]" MarkAsRead="True" Messages="[mailMessages]" OnlyUnreadMessages="True" OrderByDate="NewestFirst" Port="[Convert.ToInt32(Config(&quot;MailPort&quot;), CultureInfo.InvariantCulture)]" SecureConnection="Auto" SecurePassword="[mailPassword]" Server="[Config(&quot;MailHost&quot;).ToString]" Top="30" UseISConnection="False" sap2010:WorkflowViewState.IdRef="GetIMAPMailMessages_1">
+            <ui:GetIMAPMailMessages.ConnectionDetailsBackupSlot>
+              <usau:BackupSlot x:TypeArguments="umae:ConnectionDetails" StoredValue="{x:Null}">
+                <usau:BackupSlot.BackupValues>
+                  <scg:Dictionary x:TypeArguments="umae:ConnectionDetails, scg:List(x:Object)" />
+                </usau:BackupSlot.BackupValues>
+              </usau:BackupSlot>
+            </ui:GetIMAPMailMessages.ConnectionDetailsBackupSlot>
+          </ui:GetIMAPMailMessages>
+          <ui:ForEach x:TypeArguments="snm:MailMessage" DisplayName="For Each email" sap2010:WorkflowViewState.IdRef="ForEach`1_1">
+            <ui:ForEach.Values>
+              <InArgument x:TypeArguments="sc:IEnumerable">[mailMessages]</InArgument>
+            </ui:ForEach.Values>
+            <ui:ForEach.Body>
+              <ActivityAction x:TypeArguments="snm:MailMessage">
+                <ActivityAction.Argument>
+                  <DelegateInArgument x:TypeArguments="snm:MailMessage" Name="mail" />
+                </ActivityAction.Argument>
+                <Sequence DisplayName="Body" sap2010:WorkflowViewState.IdRef="Sequence_3">
+                  <If DisplayName="If subject matches Factura|Invoice|Cobro" sap2010:WorkflowViewState.IdRef="If_2">
+                    <If.Condition>
+                      <InArgument x:TypeArguments="x:Boolean">[Regex.IsMatch(If(mail.Subject, String.Empty), Config("MailSubjectFilter").ToString, RegexOptions.IgnoreCase)]</InArgument>
+                    </If.Condition>
+                    <If.Then>
+                      <Sequence DisplayName="Then" sap2010:WorkflowViewState.IdRef="Sequence_4">
+                        <ui:SaveMailAttachments Attachments="{x:Null}" ResourceAttachments="{x:Null}" DisplayName="Save PDF attachments to Pending" sap2010:WorkflowViewState.IdRef="SaveMailAttachments_1" ExcludeInlineAttachments="True" Filter="(?i)\.pdf$" FolderPath="[Config(&quot;PendingFolder&quot;).ToString]" Message="[mail]" OverwriteExisting="True" />
+                      </Sequence>
+                    </If.Then>
+                  </If>
+                </Sequence>
+              </ActivityAction>
+            </ui:ForEach.Body>
+          </ui:ForEach>
+        </Sequence>
+      </If.Then>
+      <If.Else>
+        <Sequence DisplayName="Else: read simulated inbox folder" sap2010:WorkflowViewState.IdRef="Sequence_5">
+          <ui:CreateDirectory ContinueOnError="{x:Null}" Output="{x:Null}" DisplayName="Create Folder Inbox" sap2010:WorkflowViewState.IdRef="CreateDirectory_2" Path="[Config(&quot;InboxFolder&quot;).ToString]" />
+          <ui:ForEach x:TypeArguments="x:String" DisplayName="For Each PDF in Inbox" sap2010:WorkflowViewState.IdRef="ForEach`1_2">
+            <ui:ForEach.Values>
+              <InArgument x:TypeArguments="sc:IEnumerable">[Directory.GetFiles(Config("InboxFolder").ToString, "*.pdf")]</InArgument>
+            </ui:ForEach.Values>
+            <ui:ForEach.Body>
+              <ActivityAction x:TypeArguments="x:String">
+                <ActivityAction.Argument>
+                  <DelegateInArgument x:TypeArguments="x:String" Name="inboxPdf" />
+                </ActivityAction.Argument>
+                <Sequence DisplayName="Body" sap2010:WorkflowViewState.IdRef="Sequence_6">
+                  <ui:MoveFile ContinueOnError="{x:Null}" DestinationResource="{x:Null}" PathResource="{x:Null}" DisplayName="Move PDF to Pending" sap2010:WorkflowViewState.IdRef="MoveFile_1" Overwrite="True" Path="[inboxPdf]" Destination="[Path.Combine(Path.GetFullPath(Config(&quot;PendingFolder&quot;).ToString), Path.GetFileName(inboxPdf))]" />
+                </Sequence>
+              </ActivityAction>
+            </ui:ForEach.Body>
+          </ui:ForEach>
+        </Sequence>
+      </If.Else>
+    </If>
+    <ui:ForEach x:TypeArguments="x:String" DisplayName="For Each PDF in Pending" sap2010:WorkflowViewState.IdRef="ForEach`1_3">
+      <ui:ForEach.Values>
+        <InArgument x:TypeArguments="sc:IEnumerable">[Directory.GetFiles(Config("PendingFolder").ToString, "*.pdf")]</InArgument>
+      </ui:ForEach.Values>
+      <ui:ForEach.Body>
+        <ActivityAction x:TypeArguments="x:String">
+          <ActivityAction.Argument>
+            <DelegateInArgument x:TypeArguments="x:String" Name="pendingPdf" />
+          </ActivityAction.Argument>
+          <Sequence DisplayName="Body" sap2010:WorkflowViewState.IdRef="Sequence_7">
+            <TryCatch DisplayName="Try Catch Add Queue Item" sap2010:WorkflowViewState.IdRef="TryCatch_1">
+              <TryCatch.Try>
+                <Sequence DisplayName="Try" sap2010:WorkflowViewState.IdRef="Sequence_8">
+                  <ui:AddQueueItem DisplayName="Add Queue Item Invoices_Queue" sap2010:WorkflowViewState.IdRef="AddQueueItem_1" FolderPath="[Config(&quot;OrchestratorQueueFolder&quot;).ToString]" Priority="Normal" QueueType="[Config(&quot;OrchestratorQueueName&quot;).ToString]" Reference="[Path.GetFileNameWithoutExtension(pendingPdf)]">
+                    <ui:AddQueueItem.ItemInformation>
+                      <InArgument x:TypeArguments="x:String" x:Key="FilePath">[Path.GetFullPath(pendingPdf)]</InArgument>
+                      <InArgument x:TypeArguments="x:String" x:Key="FileName">[Path.GetFileName(pendingPdf)]</InArgument>
+                    </ui:AddQueueItem.ItemInformation>
+                  </ui:AddQueueItem>
+                  <Assign DisplayName="Assign queuedCount" sap2010:WorkflowViewState.IdRef="Assign_1">
+                    <Assign.To>
+                      <OutArgument x:TypeArguments="x:Int32">[queuedCount]</OutArgument>
+                    </Assign.To>
+                    <Assign.Value>
+                      <InArgument x:TypeArguments="x:Int32">[queuedCount + 1]</InArgument>
+                    </Assign.Value>
+                  </Assign>
+                </Sequence>
+              </TryCatch.Try>
+              <TryCatch.Catches>
+                <Catch x:TypeArguments="s:Exception" sap2010:WorkflowViewState.IdRef="Catch`1_1">
+                  <ActivityAction x:TypeArguments="s:Exception">
+                    <ActivityAction.Argument>
+                      <DelegateInArgument x:TypeArguments="s:Exception" Name="queueError" />
+                    </ActivityAction.Argument>
+                    <Sequence DisplayName="Catch" sap2010:WorkflowViewState.IdRef="Sequence_9">
+                      <ui:LogMessage DisplayName="Log item not queued" sap2010:WorkflowViewState.IdRef="LogMessage_1" Level="Warn" Message="[&quot;No se encolo &quot; &amp; Path.GetFileName(pendingPdf) &amp; &quot;: &quot; &amp; queueError.Message]" />
+                    </Sequence>
+                  </ActivityAction>
+                </Catch>
+              </TryCatch.Catches>
+            </TryCatch>
+          </Sequence>
+        </ActivityAction>
+      </ui:ForEach.Body>
+    </ui:ForEach>
+    <ui:LogMessage DisplayName="Log dispatcher summary" sap2010:WorkflowViewState.IdRef="LogMessage_2" Level="Info" Message="[&quot;Dispatcher: &quot; &amp; queuedCount.ToString &amp; &quot; facturas encoladas en &quot; &amp; Config(&quot;OrchestratorQueueName&quot;).ToString]" />
+  </Sequence>
+</Activity>

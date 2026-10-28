@@ -1,0 +1,68 @@
+# Credenciales leidas de infra/.env (copia de .env.example). Nunca se escriben aqui.
+services:
+  postgres_finops:
+    image: postgres:17-alpine
+    container_name: autofinops_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?Define POSTGRES_USER en infra/.env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD en infra/.env}
+      POSTGRES_DB: ${POSTGRES_DB:-autofinops_db}
+      TZ: America/Managua
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata_finops:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pgadmin_finops:
+    image: dpage/pgadmin4:latest
+    container_name: autofinops_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:?Define PGADMIN_EMAIL en infra/.env}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:?Define PGADMIN_PASSWORD en infra/.env}
+    ports:
+      - "127.0.0.1:${PGADMIN_PORT:-5050}:80"
+    depends_on:
+      postgres_finops:
+        condition: service_healthy
+
+  metabase_bi:
+    image: metabase/metabase:latest
+    container_name: autofinops_metabase
+    restart: unless-stopped
+    environment:
+      MB_DB_FILE: /metabase-data/metabase.db
+      JAVA_TIMEZONE: America/Managua
+    ports:
+      - "127.0.0.1:${METABASE_PORT:-3001}:3000"
+    volumes:
+      - metabase_data:/metabase-data
+    depends_on:
+      postgres_finops:
+        condition: service_healthy
+
+  # Buzon de prueba (RF-01): IMAP 3143 y SMTP 3025 sin TLS, solo para desarrollo local.
+  mail_finops:
+    image: greenmail/standalone:2.1.15
+    container_name: autofinops_mail
+    restart: unless-stopped
+    environment:
+      GREENMAIL_OPTS: >-
+        -Dgreenmail.setup.test.smtp -Dgreenmail.setup.test.imap
+        -Dgreenmail.hostname=0.0.0.0
+        -Dgreenmail.users=${MAIL_USER:?Define MAIL_USER en infra/.env}:${MAIL_PASSWORD:?Define MAIL_PASSWORD en infra/.env}@${MAIL_DOMAIN:-autofinops.test}
+        -Dgreenmail.users.login=email
+    ports:
+      - "127.0.0.1:${MAIL_SMTP_PORT:-3025}:3025"
+      - "127.0.0.1:${MAIL_IMAP_PORT:-3143}:3143"
+
+volumes:
+  pgdata_finops:
+  metabase_data:

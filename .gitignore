@@ -1,0 +1,14 @@
+# Secretos
+.env
+**/.env
+!.env.example
+
+# Carpetas de trabajo del robot
+Input/
+Output/
+**/Input/
+**/Output/
+
+# Cache local de UiPath Studio y capturas de excepciones
+uipath_workflow/.local/
+uipath_workflow/Exceptions_Screenshots/*.png

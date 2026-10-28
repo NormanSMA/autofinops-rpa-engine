@@ -1,0 +1,6 @@
+{
+  "Name": "uipath_workflow",
+  "ProjectType": "Process",
+  "Description": "AutoFinOps-NI: conciliacion de facturas con REFramework",
+  "MainFile": "Main.xaml"
+}

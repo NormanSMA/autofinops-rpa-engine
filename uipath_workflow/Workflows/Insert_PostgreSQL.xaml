@@ -1,0 +1,96 @@
+<Activity mc:Ignorable="sap sap2010" x:Class="Workflows_Insert_PostgreSQL" sap2010:WorkflowViewState.IdRef="ActivityBuilder_1" xmlns="http://schemas.microsoft.com/netfx/2009/xaml/activities" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:s="clr-namespace:System;assembly=System.Private.CoreLib" xmlns:sap="http://schemas.microsoft.com/netfx/2009/xaml/activities/presentation" xmlns:sap2010="http://schemas.microsoft.com/netfx/2010/xaml/activities/presentation" xmlns:scg="clr-namespace:System.Collections.Generic;assembly=System.Private.CoreLib" xmlns:sco="clr-namespace:System.Collections.ObjectModel;assembly=System.Private.CoreLib" xmlns:ui="http://schemas.uipath.com/workflow/activities" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <x:Members>
+    <x:Property Name="in_Connection" Type="InArgument(ui:DatabaseConnection)" />
+    <x:Property Name="in_WriteInvoice" Type="InArgument(x:Boolean)" />
+    <x:Property Name="in_InvoiceNumber" Type="InArgument(x:String)" />
+    <x:Property Name="in_Invoice" Type="InArgument(scg:Dictionary(x:String, x:Object))" />
+    <x:Property Name="in_QueueItemId" Type="InArgument(x:String)" />
+    <x:Property Name="in_BotStage" Type="InArgument(x:String)" />
+    <x:Property Name="in_AuditStatus" Type="InArgument(x:String)" />
+    <x:Property Name="in_ExceptionType" Type="InArgument(x:String)" />
+    <x:Property Name="in_ErrorCode" Type="InArgument(x:String)" />
+    <x:Property Name="in_ErrorMessage" Type="InArgument(x:String)" />
+    <x:Property Name="in_DurationMs" Type="InArgument(x:Int32)" />
+  </x:Members>
+  <VisualBasic.Settings>
+    <x:Null />
+  </VisualBasic.Settings>
+  <TextExpression.NamespacesForImplementation>
+    <sco:Collection x:TypeArguments="x:String">
+      <x:String>Microsoft.VisualBasic</x:String>
+      <x:String>System</x:String>
+      <x:String>System.Activities</x:String>
+      <x:String>System.Collections.Generic</x:String>
+      <x:String>System.Linq</x:String>
+      <x:String>UiPath.Core</x:String>
+      <x:String>UiPath.Core.Activities</x:String>
+      <x:String>UiPath.Database</x:String>
+      <x:String>UiPath.Database.Activities</x:String>
+    </sco:Collection>
+  </TextExpression.NamespacesForImplementation>
+  <TextExpression.ReferencesForImplementation>
+    <sco:Collection x:TypeArguments="AssemblyReference">
+      <AssemblyReference>Microsoft.VisualBasic</AssemblyReference>
+      <AssemblyReference>System</AssemblyReference>
+      <AssemblyReference>System.Activities</AssemblyReference>
+      <AssemblyReference>System.Collections</AssemblyReference>
+      <AssemblyReference>System.Core</AssemblyReference>
+      <AssemblyReference>System.Data</AssemblyReference>
+      <AssemblyReference>System.Data.Common</AssemblyReference>
+      <AssemblyReference>System.Linq</AssemblyReference>
+      <AssemblyReference>System.Private.CoreLib</AssemblyReference>
+      <AssemblyReference>System.Runtime</AssemblyReference>
+      <AssemblyReference>UiPath.Database</AssemblyReference>
+      <AssemblyReference>UiPath.Database.Activities</AssemblyReference>
+      <AssemblyReference>UiPath.System.Activities</AssemblyReference>
+    </sco:Collection>
+  </TextExpression.ReferencesForImplementation>
+  <Sequence DisplayName="Insert PostgreSQL" sap2010:WorkflowViewState.IdRef="Sequence_1">
+    <If DisplayName="If the invoice row must be written (not duplicate)" sap2010:WorkflowViewState.IdRef="If_1">
+      <If.Condition>
+        <InArgument x:TypeArguments="x:Boolean">[in_WriteInvoice]</InArgument>
+      </If.Condition>
+      <If.Then>
+        <Sequence DisplayName="Then" sap2010:WorkflowViewState.IdRef="Sequence_2">
+          <ui:ExecuteNonQuery AffectedRecords="{x:Null}" ContinueOnError="{x:Null}" TimeoutMS="{x:Null}" CommandType="Text" DisplayName="Run Command INSERT invoices_reconciliation" ExistingDbConnection="[in_Connection]" sap2010:WorkflowViewState.IdRef="ExecuteNonQuery_1" Sql="INSERT INTO invoices_reconciliation (invoice_number, provider_ruc, provider_name, cost_center, issue_date, original_currency, exchange_rate_bcn, subtotal_original, iva_amount_original, total_original, ir_retention_nio, net_payable_nio, net_payable_usd, reconciliation_status, validation_notes, pdf_file_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)">
+            <ui:ExecuteNonQuery.Parameters>
+              <scg:Dictionary x:TypeArguments="x:String, Argument">
+                <InArgument x:TypeArguments="x:String" x:Key="p01_invoice_number">[CStr(in_Invoice("invoice_number"))]</InArgument>
+                <InArgument x:TypeArguments="x:String" x:Key="p02_provider_ruc">[CStr(in_Invoice("provider_ruc"))]</InArgument>
+                <InArgument x:TypeArguments="x:String" x:Key="p03_provider_name">[CStr(in_Invoice("provider_name"))]</InArgument>
+                <InArgument x:TypeArguments="x:String" x:Key="p04_cost_center">[CStr(in_Invoice("cost_center"))]</InArgument>
+                <InArgument x:TypeArguments="s:DateTime" x:Key="p05_issue_date">[CDate(in_Invoice("issue_date")).Date]</InArgument>
+                <InArgument x:TypeArguments="x:String" x:Key="p06_original_currency">[CStr(in_Invoice("original_currency"))]</InArgument>
+                <InArgument x:TypeArguments="x:Decimal" x:Key="p07_exchange_rate_bcn">[CDec(in_Invoice("exchange_rate_bcn"))]</InArgument>
+                <InArgument x:TypeArguments="x:Decimal" x:Key="p08_subtotal_original">[CDec(in_Invoice("subtotal_original"))]</InArgument>
+                <InArgument x:TypeArguments="x:Decimal" x:Key="p09_iva_amount_original">[CDec(in_Invoice("iva_amount_original"))]</InArgument>
+                <InArgument x:TypeArguments="x:Decimal" x:Key="p10_total_original">[CDec(in_Invoice("total_original"))]</InArgument>
+                <InArgument x:TypeArguments="x:Decimal" x:Key="p11_ir_retention_nio">[CDec(in_Invoice("ir_retention_nio"))]</InArgument>
+                <InArgument x:TypeArguments="x:Decimal" x:Key="p12_net_payable_nio">[CDec(in_Invoice("net_payable_nio"))]</InArgument>
+                <InArgument x:TypeArguments="x:Decimal" x:Key="p13_net_payable_usd">[CDec(in_Invoice("net_payable_usd"))]</InArgument>
+                <InArgument x:TypeArguments="x:String" x:Key="p14_reconciliation_status">[CStr(in_Invoice("reconciliation_status"))]</InArgument>
+                <InArgument x:TypeArguments="x:String" x:Key="p15_validation_notes">[CStr(in_Invoice("validation_notes"))]</InArgument>
+                <InArgument x:TypeArguments="x:String" x:Key="p16_pdf_file_name">[CStr(in_Invoice("pdf_file_name"))]</InArgument>
+              </scg:Dictionary>
+            </ui:ExecuteNonQuery.Parameters>
+          </ui:ExecuteNonQuery>
+        </Sequence>
+      </If.Then>
+    </If>
+    <ui:ExecuteNonQuery AffectedRecords="{x:Null}" ContinueOnError="{x:Null}" TimeoutMS="{x:Null}" CommandType="Text" DisplayName="Run Command INSERT rpa_audit_logs (RNF-04)" ExistingDbConnection="[in_Connection]" sap2010:WorkflowViewState.IdRef="ExecuteNonQuery_2" Sql="INSERT INTO rpa_audit_logs (queue_item_id, invoice_number, bot_stage, status, duration_ms, exception_type, error_code, error_message) VALUES (?, NULLIF(?, ''), ?, ?, ?, NULLIF(?, ''), NULLIF(?, ''), ?)">
+      <ui:ExecuteNonQuery.Parameters>
+        <scg:Dictionary x:TypeArguments="x:String, Argument">
+          <InArgument x:TypeArguments="x:String" x:Key="p1_queue_item_id">[in_QueueItemId]</InArgument>
+          <InArgument x:TypeArguments="x:String" x:Key="p2_invoice_number">[If(in_InvoiceNumber, String.Empty)]</InArgument>
+          <InArgument x:TypeArguments="x:String" x:Key="p3_bot_stage">[in_BotStage]</InArgument>
+          <InArgument x:TypeArguments="x:String" x:Key="p4_status">[in_AuditStatus]</InArgument>
+          <InArgument x:TypeArguments="x:Int32" x:Key="p5_duration_ms">[in_DurationMs]</InArgument>
+          <InArgument x:TypeArguments="x:String" x:Key="p6_exception_type">[If(in_ExceptionType, String.Empty)]</InArgument>
+          <InArgument x:TypeArguments="x:String" x:Key="p7_error_code">[If(in_ErrorCode, String.Empty)]</InArgument>
+          <InArgument x:TypeArguments="x:String" x:Key="p8_error_message">[If(in_ErrorMessage, String.Empty)]</InArgument>
+        </scg:Dictionary>
+      </ui:ExecuteNonQuery.Parameters>
+    </ui:ExecuteNonQuery>
+    <ui:LogMessage DisplayName="Log persisted" sap2010:WorkflowViewState.IdRef="LogMessage_1" Level="Info" Message="[&quot;PostgreSQL: auditoria registrada para &quot; &amp; in_QueueItemId &amp; &quot; (&quot; &amp; in_AuditStatus &amp; &quot;)&quot;]" />
+  </Sequence>
+</Activity>
