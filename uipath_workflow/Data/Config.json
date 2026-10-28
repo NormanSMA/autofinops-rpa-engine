@@ -16,7 +16,11 @@
     "MailPort": 3143,
     "MailFolder": "INBOX",
     "MailCredentialAssetName": "Mail_Credential",
-    "MailSubjectFilter": "Factura|Invoice|Cobro"
+    "MailSubjectFilter": "Factura|Invoice|Cobro",
+    "ReportFolder": "Data\\Output\\Reports",
+    "ReportRecipient": "gerencia@autofinops.test",
+    "SmtpHost": "127.0.0.1",
+    "SmtpPort": 3025
   },
   "Constants": {
     "MaxRetryNumber": 0,

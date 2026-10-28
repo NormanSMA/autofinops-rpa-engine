@@ -1,5 +1,5 @@
 {
-  "name": "uipath_workflow",
+  "name": "AutoFinOps-NI",
   "projectId": "d4a6f883-6be0-4123-a09c-6e82502e2527",
   "description": "AutoFinOps-NI: conciliacion de facturas con REFramework",
   "main": "Main.xaml",

@@ -105,9 +105,35 @@ uip rpa run --file-path Main.xaml --project-dir .
 
 El resultado coincide con la corrida por buzón simulado.
 
+## Reporte diario a gerencia (RF-07)
+
+`Workflows/Send_Daily_Report.xaml`, invocado desde el estado End Process de `Main.xaml`.
+
+| Verificación | Resultado |
+|---|---|
+| Excel | `Data\Output\Reports\Reporte_Conciliacion_20261028.xlsx`, hoja `Conciliacion`, 19 filas + encabezado |
+| Correo | Llegó a `gerencia@autofinops.test` (GreenMail) |
+| Asunto | `AutoFinOps-NI \| Reporte de conciliacion 2026-10-28` |
+| Cuerpo | HTML de 11,811 caracteres: 15 conciliadas, 4 observadas, 3 duplicadas, C$ 125,518.46 neto |
+| Adjunto | `Reporte_Conciliacion_20261028.xlsx`, 8,072 bytes |
+| Integración | `Main.xaml` con la cola vacía terminó sin errores y envió el reporte |
+
+Captura: [screenshots/correo-reporte.png](screenshots/correo-reporte.png)
+
+## Publicación en Orchestrator
+
+| Paso | Resultado |
+|---|---|
+| `uip rpa pack` | `AutoFinOps-NI.1.0.0.nupkg` (exigió el bloque `ReadPDFText.Item`, que `build` no pedía) |
+| `uip or packages upload` | Paquete `AutoFinOps-NI` 1.0.0 en el feed del tenant |
+| `uip or processes create` | `AutoFinOps-NI Dispatcher` y `AutoFinOps-NI Performer` en `Shared` |
+| `uip or jobs start` | HTTP 409: el tenant no tiene máquina con runtime Unattended o NonProduction |
+
+Con el robot atendido actual, los procesos se ejecutan desde UiPath Assistant.
+
 ## No cubierto
 
 - Correo real (Gmail o Microsoft 365); solo se probó el buzón GreenMail.
-- RF-07: reporte Excel y correo HTML.
+- Ejecución del proceso publicado desde Orchestrator (requiere runtime Unattended).
 - Caída del servicio BCN (SE-01); el código está, la prueba no se ejecutó.
 - BRE-04 (PDF sin campos de factura).

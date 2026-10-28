@@ -1,0 +1,153 @@
+<Activity mc:Ignorable="sap sap2010" x:Class="Workflows_Send_Daily_Report" sap2010:WorkflowViewState.IdRef="ActivityBuilder_1" xmlns="http://schemas.microsoft.com/netfx/2009/xaml/activities" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:s="clr-namespace:System;assembly=System.Private.CoreLib" xmlns:sap="http://schemas.microsoft.com/netfx/2009/xaml/activities/presentation" xmlns:sap2010="http://schemas.microsoft.com/netfx/2010/xaml/activities/presentation" xmlns:scg="clr-namespace:System.Collections.Generic;assembly=System.Private.CoreLib" xmlns:sco="clr-namespace:System.Collections.ObjectModel;assembly=System.Private.CoreLib" xmlns:sd="clr-namespace:System.Data;assembly=System.Data.Common" xmlns:ss="clr-namespace:System.Security;assembly=System.Private.CoreLib" xmlns:ui="http://schemas.uipath.com/workflow/activities" xmlns:umae="clr-namespace:UiPath.Mail.Activities.Enums;assembly=UiPath.Mail.Activities" xmlns:umame="clr-namespace:UiPath.MicrosoftOffice365.Activities.Mail.Enums;assembly=UiPath.Mail.Activities" xmlns:usau="clr-namespace:UiPath.Shared.Activities.Utils;assembly=UiPath.Mail.Activities" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <x:Members>
+    <x:Property Name="in_Config" Type="InArgument(scg:Dictionary(x:String, x:Object))" />
+  </x:Members>
+  <VisualBasic.Settings>
+    <x:Null />
+  </VisualBasic.Settings>
+  <TextExpression.NamespacesForImplementation>
+    <sco:Collection x:TypeArguments="x:String">
+      <x:String>Microsoft.VisualBasic</x:String>
+      <x:String>System</x:String>
+      <x:String>System.Activities</x:String>
+      <x:String>System.Collections.Generic</x:String>
+      <x:String>System.Data</x:String>
+      <x:String>System.Globalization</x:String>
+      <x:String>System.IO</x:String>
+      <x:String>System.Linq</x:String>
+      <x:String>System.Net</x:String>
+      <x:String>System.Security</x:String>
+      <x:String>UiPath.Core</x:String>
+      <x:String>UiPath.Core.Activities</x:String>
+      <x:String>UiPath.Database</x:String>
+      <x:String>UiPath.Database.Activities</x:String>
+      <x:String>UiPath.Excel.Activities</x:String>
+      <x:String>UiPath.Mail.SMTP.Activities</x:String>
+    </sco:Collection>
+  </TextExpression.NamespacesForImplementation>
+  <TextExpression.ReferencesForImplementation>
+    <sco:Collection x:TypeArguments="AssemblyReference">
+      <AssemblyReference>Microsoft.VisualBasic</AssemblyReference>
+      <AssemblyReference>System</AssemblyReference>
+      <AssemblyReference>System.Activities</AssemblyReference>
+      <AssemblyReference>System.Collections</AssemblyReference>
+      <AssemblyReference>System.Core</AssemblyReference>
+      <AssemblyReference>System.Data</AssemblyReference>
+      <AssemblyReference>System.Data.Common</AssemblyReference>
+      <AssemblyReference>System.Linq</AssemblyReference>
+      <AssemblyReference>System.Net.Primitives</AssemblyReference>
+      <AssemblyReference>System.Private.CoreLib</AssemblyReference>
+      <AssemblyReference>System.Runtime</AssemblyReference>
+      <AssemblyReference>UiPath.Database</AssemblyReference>
+      <AssemblyReference>UiPath.Database.Activities</AssemblyReference>
+      <AssemblyReference>UiPath.Excel.Activities</AssemblyReference>
+      <AssemblyReference>UiPath.Mail.Activities</AssemblyReference>
+      <AssemblyReference>UiPath.System.Activities</AssemblyReference>
+    </sco:Collection>
+  </TextExpression.ReferencesForImplementation>
+  <Sequence sap2010:Annotation.AnnotationText="RF-07: exporta las facturas del dia a Excel y envia un resumen HTML con el Excel adjunto a gerencia." DisplayName="Send Daily Report" sap2010:WorkflowViewState.IdRef="Sequence_1">
+    <Sequence.Variables>
+      <Variable x:TypeArguments="ui:DatabaseConnection" Name="dbConn" />
+      <Variable x:TypeArguments="sd:DataTable" Name="dt_Report" />
+      <Variable x:TypeArguments="sd:DataTable" Name="dt_Audit" />
+      <Variable x:TypeArguments="x:String" Name="reportPath" />
+      <Variable x:TypeArguments="x:String" Name="htmlBody" />
+    </Sequence.Variables>
+    <ui:CreateDirectory ContinueOnError="{x:Null}" Output="{x:Null}" DisplayName="Create Folder Reports" sap2010:WorkflowViewState.IdRef="CreateDirectory_1" Path="[in_Config(&quot;ReportFolder&quot;).ToString]" />
+    <Assign DisplayName="Assign reportPath" sap2010:WorkflowViewState.IdRef="Assign_1">
+      <Assign.To>
+        <OutArgument x:TypeArguments="x:String">[reportPath]</OutArgument>
+      </Assign.To>
+      <Assign.Value>
+        <InArgument x:TypeArguments="x:String">[Path.Combine(Path.GetFullPath(in_Config("ReportFolder").ToString), "Reporte_Conciliacion_" &amp; DateTime.Now.ToString("yyyyMMdd") &amp; ".xlsx")]</InArgument>
+      </Assign.Value>
+    </Assign>
+    <TryCatch DisplayName="Try Catch read report data" sap2010:WorkflowViewState.IdRef="TryCatch_1">
+      <TryCatch.Try>
+        <Sequence DisplayName="Read today's data with PG_Credential" sap2010:WorkflowViewState.IdRef="Sequence_2">
+          <Sequence.Variables>
+            <Variable x:TypeArguments="x:String" Name="pgUser" />
+            <Variable x:TypeArguments="ss:SecureString" Name="pgPassword" />
+          </Sequence.Variables>
+          <ui:GetRobotCredential DisplayName="Get Credential PG_Credential" sap2010:WorkflowViewState.IdRef="GetRobotCredential_1" FolderPath="[in_Config(&quot;OrchestratorQueueFolder&quot;).ToString]" AssetName="[in_Config(&quot;PGCredentialAssetName&quot;).ToString]" CacheStrategy="None" Password="[pgPassword]" Username="[pgUser]" />
+          <ui:DatabaseConnect DisplayName="Connect to PostgreSQL (ODBC DSN)" sap2010:WorkflowViewState.IdRef="DatabaseConnect_1" ProviderName="System.Data.Odbc" ConnectionSecureString="[New NetworkCredential(String.Empty, &quot;DSN=&quot; &amp; in_Config(&quot;PostgreSqlDsn&quot;).ToString &amp; &quot;;UID=&quot; &amp; pgUser &amp; &quot;;PWD=&quot; &amp; New NetworkCredential(String.Empty, pgPassword).Password).SecurePassword]" DatabaseConnection="[dbConn]" />
+          <ui:ExecuteQuery ContinueOnError="{x:Null}" TimeoutMS="{x:Null}" CommandType="Text" DataTable="[dt_Report]" DisplayName="Run Query invoices of today" ExistingDbConnection="[dbConn]" sap2010:WorkflowViewState.IdRef="ExecuteQuery_1" Sql="SELECT invoice_number AS factura, provider_name AS proveedor, cost_center AS centro_costo, original_currency AS moneda, total_original AS total, exchange_rate_bcn AS tasa_bcn, ir_retention_nio AS ir_nio, net_payable_nio AS neto_nio, net_payable_usd AS neto_usd, reconciliation_status AS estado, validation_notes AS notas FROM invoices_reconciliation WHERE processed_at::date = CURRENT_DATE ORDER BY processed_at, invoice_number">
+            <ui:ExecuteQuery.Parameters>
+              <scg:Dictionary x:TypeArguments="x:String, Argument" />
+            </ui:ExecuteQuery.Parameters>
+          </ui:ExecuteQuery>
+          <ui:ExecuteQuery ContinueOnError="{x:Null}" TimeoutMS="{x:Null}" CommandType="Text" DataTable="[dt_Audit]" DisplayName="Run Query audit summary of today" ExistingDbConnection="[dbConn]" sap2010:WorkflowViewState.IdRef="ExecuteQuery_2" Sql="SELECT COALESCE(error_code, 'SUCCESS') AS resultado, COUNT(*) AS intentos FROM rpa_audit_logs WHERE logged_at::date = CURRENT_DATE GROUP BY 1 ORDER BY 1">
+            <ui:ExecuteQuery.Parameters>
+              <scg:Dictionary x:TypeArguments="x:String, Argument" />
+            </ui:ExecuteQuery.Parameters>
+          </ui:ExecuteQuery>
+        </Sequence>
+      </TryCatch.Try>
+      <TryCatch.Finally>
+        <Sequence DisplayName="Finally: close connection" sap2010:WorkflowViewState.IdRef="Sequence_3">
+          <If DisplayName="If the connection is open" sap2010:WorkflowViewState.IdRef="If_1">
+            <If.Condition>
+              <InArgument x:TypeArguments="x:Boolean">[dbConn IsNot Nothing]</InArgument>
+            </If.Condition>
+            <If.Then>
+              <Sequence DisplayName="Then" sap2010:WorkflowViewState.IdRef="Sequence_4">
+                <ui:DatabaseDisconnect DisplayName="Disconnect from PostgreSQL" sap2010:WorkflowViewState.IdRef="DatabaseDisconnect_1" DatabaseConnection="[dbConn]" />
+              </Sequence>
+            </If.Then>
+          </If>
+        </Sequence>
+      </TryCatch.Finally>
+    </TryCatch>
+    <If DisplayName="If there are invoices today" sap2010:WorkflowViewState.IdRef="If_2">
+      <If.Condition>
+        <InArgument x:TypeArguments="x:Boolean">[dt_Report IsNot Nothing AndAlso dt_Report.Rows.Count &gt; 0]</InArgument>
+      </If.Condition>
+      <If.Then>
+        <Sequence DisplayName="Then: write Excel and send HTML mail" sap2010:WorkflowViewState.IdRef="Sequence_5">
+          <ui:WriteRange DisplayName="Write Range Workbook (Reporte_Conciliacion)" sap2010:WorkflowViewState.IdRef="WriteRange_1" AddHeaders="True" DataTable="[dt_Report]" SheetName="Conciliacion" StartingCell="A1" WorkbookPath="[reportPath]" />
+          <ui:InvokeCode DisplayName="Build HTML summary" sap2010:WorkflowViewState.IdRef="InvokeCode_1" Code="Dim inv As System.Globalization.CultureInfo = System.Globalization.CultureInfo.InvariantCulture&#xA;Dim ok As Integer = 0&#xA;Dim obs As Integer = 0&#xA;Dim netNio As Decimal = 0D&#xA;Dim irNio As Decimal = 0D&#xA;Dim rows As New System.Text.StringBuilder()&#xA;For Each r As System.Data.DataRow In report.Rows&#xA;  Dim estado As String = r(&quot;estado&quot;).ToString()&#xA;  Dim color As String = If(estado = &quot;CONCILIADA&quot;, &quot;#16A34A&quot;, &quot;#D97706&quot;)&#xA;  If estado = &quot;CONCILIADA&quot; Then&#xA;    ok += 1&#xA;    netNio += Convert.ToDecimal(r(&quot;neto_nio&quot;), inv)&#xA;    irNio += Convert.ToDecimal(r(&quot;ir_nio&quot;), inv)&#xA;  Else&#xA;    obs += 1&#xA;  End If&#xA;  rows.Append(&quot;&lt;tr&gt;&lt;td style='padding:8px;border-bottom:1px solid #E5E7EB'&gt;&quot; &amp; System.Net.WebUtility.HtmlEncode(r(&quot;factura&quot;).ToString()) &amp; &quot;&lt;/td&gt;&lt;td style='padding:8px;border-bottom:1px solid #E5E7EB'&gt;&quot; &amp; System.Net.WebUtility.HtmlEncode(r(&quot;proveedor&quot;).ToString()) &amp; &quot;&lt;/td&gt;&lt;td style='padding:8px;border-bottom:1px solid #E5E7EB;text-align:right'&gt;&quot; &amp; r(&quot;moneda&quot;).ToString() &amp; &quot; &quot; &amp; Convert.ToDecimal(r(&quot;total&quot;), inv).ToString(&quot;N2&quot;, inv) &amp; &quot;&lt;/td&gt;&lt;td style='padding:8px;border-bottom:1px solid #E5E7EB;text-align:right'&gt;C$ &quot; &amp; Convert.ToDecimal(r(&quot;neto_nio&quot;), inv).ToString(&quot;N2&quot;, inv) &amp; &quot;&lt;/td&gt;&lt;td style='padding:8px;border-bottom:1px solid #E5E7EB'&gt;&lt;span style='background:&quot; &amp; color &amp; &quot;;color:#FFFFFF;border-radius:12px;padding:2px 10px;font-size:12px'&gt;&quot; &amp; estado &amp; &quot;&lt;/span&gt;&lt;/td&gt;&lt;/tr&gt;&quot;)&#xA;Next&#xA;Dim dup As Integer = 0&#xA;If audit IsNot Nothing Then&#xA;  For Each a As System.Data.DataRow In audit.Rows&#xA;    If a(&quot;resultado&quot;).ToString() = &quot;BRE-03&quot; Then dup = Convert.ToInt32(a(&quot;intentos&quot;), inv)&#xA;  Next&#xA;End If&#xA;Dim card As String = &quot;&lt;td style='background:#F3F4F6;border-radius:10px;padding:14px;text-align:center'&gt;&lt;div style='font-size:24px;font-weight:700;color:{0}'&gt;{1}&lt;/div&gt;&lt;div style='font-size:12px;color:#6B7280'&gt;{2}&lt;/div&gt;&lt;/td&gt;&quot;&#xA;html = &quot;&lt;div style='font-family:Segoe UI,Arial,sans-serif;max-width:760px;color:#111827'&gt;&quot; &amp;&#xA;  &quot;&lt;div style='background:#0B1220;color:#FFFFFF;padding:18px 22px;border-radius:12px 12px 0 0'&gt;&lt;div style='font-size:12px;color:#FA4616;font-weight:700;letter-spacing:1px'&gt;AUTOFINOPS-NI&lt;/div&gt;&lt;div style='font-size:20px;font-weight:700'&gt;Reporte de conciliacion del &quot; &amp; DateTime.Now.ToString(&quot;yyyy-MM-dd&quot;) &amp; &quot;&lt;/div&gt;&lt;/div&gt;&quot; &amp;&#xA;  &quot;&lt;table style='width:100%;border-spacing:10px;margin-top:8px'&gt;&lt;tr&gt;&quot; &amp;&#xA;  String.Format(card, &quot;#16A34A&quot;, ok, &quot;Conciliadas&quot;) &amp; String.Format(card, &quot;#D97706&quot;, obs, &quot;Observadas&quot;) &amp; String.Format(card, &quot;#DC2626&quot;, dup, &quot;Duplicadas&quot;) &amp; String.Format(card, &quot;#111827&quot;, &quot;C$ &quot; &amp; netNio.ToString(&quot;N2&quot;, inv), &quot;Neto aprobado&quot;) &amp;&#xA;  &quot;&lt;/tr&gt;&lt;/table&gt;&quot; &amp;&#xA;  &quot;&lt;table style='width:100%;border-collapse:collapse;font-size:13px'&gt;&lt;tr style='background:#F9FAFB;text-align:left'&gt;&lt;th style='padding:8px'&gt;Factura&lt;/th&gt;&lt;th style='padding:8px'&gt;Proveedor&lt;/th&gt;&lt;th style='padding:8px;text-align:right'&gt;Total&lt;/th&gt;&lt;th style='padding:8px;text-align:right'&gt;Neto NIO&lt;/th&gt;&lt;th style='padding:8px'&gt;Estado&lt;/th&gt;&lt;/tr&gt;&quot; &amp; rows.ToString() &amp; &quot;&lt;/table&gt;&quot; &amp;&#xA;  &quot;&lt;p style='font-size:12px;color:#6B7280;margin-top:16px'&gt;Retencion IR del dia: C$ &quot; &amp; irNio.ToString(&quot;N2&quot;, inv) &amp; &quot;. Adjunto: detalle en Excel. Correo generado por el robot UiPath. Datos ficticios de demostracion.&lt;/p&gt;&lt;/div&gt;&quot;">
+            <ui:InvokeCode.Arguments>
+              <scg:Dictionary x:TypeArguments="x:String, Argument">
+                <InArgument x:TypeArguments="sd:DataTable" x:Key="report">[dt_Report]</InArgument>
+                <InArgument x:TypeArguments="sd:DataTable" x:Key="audit">[dt_Audit]</InArgument>
+                <OutArgument x:TypeArguments="x:String" x:Key="html">[htmlBody]</OutArgument>
+              </scg:Dictionary>
+            </ui:InvokeCode.Arguments>
+          </ui:InvokeCode>
+          <Sequence DisplayName="Send mail with Mail_Credential" sap2010:WorkflowViewState.IdRef="Sequence_6">
+            <Sequence.Variables>
+              <Variable x:TypeArguments="x:String" Name="mailUser" />
+              <Variable x:TypeArguments="ss:SecureString" Name="mailPassword" />
+            </Sequence.Variables>
+            <ui:GetRobotCredential DisplayName="Get Credential Mail_Credential" sap2010:WorkflowViewState.IdRef="GetRobotCredential_2" FolderPath="[in_Config(&quot;OrchestratorQueueFolder&quot;).ToString]" AssetName="[in_Config(&quot;MailCredentialAssetName&quot;).ToString]" CacheStrategy="None" Password="[mailPassword]" Username="[mailUser]" />
+            <ui:SendMail Bcc="{x:Null}" Cc="{x:Null}" ContinueOnError="{x:Null}" MailMessage="{x:Null}" Name="{x:Null}" Password="{x:Null}" ReplyTo="{x:Null}" ResourceAttachmentList="{x:Null}" ResourceAttachments="{x:Null}" Result="{x:Null}" TimeoutMS="{x:Null}" UseOAuth="{x:Null}" UseRichTextEditor="{x:Null}" Action="Forward" AttachmentInputMode="None" AttachmentsCollection="[{reportPath}]" Body="[htmlBody]" ConnectionMode="Undefined" CreatedAfterSolutionSupport="True" DisplayName="Send SMTP Email (reporte a gerencia)" Email="[mailUser]" EnableSSL="True" From="[mailUser]" IgnoreCRL="False" IsBodyHtml="True" Port="[Convert.ToInt32(in_Config(&quot;SmtpPort&quot;), CultureInfo.InvariantCulture)]" SecureConnection="Auto" SecurePassword="[mailPassword]" Server="[in_Config(&quot;SmtpHost&quot;).ToString]" Subject="[&quot;AutoFinOps-NI | Reporte de conciliacion &quot; &amp; DateTime.Now.ToString(&quot;yyyy-MM-dd&quot;)]" To="[in_Config(&quot;ReportRecipient&quot;).ToString]" UseISConnection="False" sap2010:WorkflowViewState.IdRef="SendMail_1">
+              <ui:SendMail.AttachmentsBackup>
+                <usau:BackupSlot x:TypeArguments="umame:AttachmentInputMode" StoredValue="{x:Null}">
+                  <usau:BackupSlot.BackupValues>
+                    <scg:Dictionary x:TypeArguments="umame:AttachmentInputMode, scg:List(x:Object)" />
+                  </usau:BackupSlot.BackupValues>
+                </usau:BackupSlot>
+              </ui:SendMail.AttachmentsBackup>
+              <ui:SendMail.ConnectionDetailsBackupSlot>
+                <usau:BackupSlot x:TypeArguments="umae:ConnectionDetails" StoredValue="{x:Null}">
+                  <usau:BackupSlot.BackupValues>
+                    <scg:Dictionary x:TypeArguments="umae:ConnectionDetails, scg:List(x:Object)" />
+                  </usau:BackupSlot.BackupValues>
+                </usau:BackupSlot>
+              </ui:SendMail.ConnectionDetailsBackupSlot>
+              <ui:SendMail.Files>
+                <scg:List x:TypeArguments="InArgument(x:String)" Capacity="0" />
+              </ui:SendMail.Files>
+            </ui:SendMail>
+          </Sequence>
+          <ui:LogMessage DisplayName="Log report sent" sap2010:WorkflowViewState.IdRef="LogMessage_1" Level="Info" Message="[&quot;RF-07: reporte enviado a &quot; &amp; in_Config(&quot;ReportRecipient&quot;).ToString &amp; &quot; con &quot; &amp; dt_Report.Rows.Count.ToString &amp; &quot; facturas: &quot; &amp; Path.GetFileName(reportPath)]" />
+        </Sequence>
+      </If.Then>
+      <If.Else>
+        <Sequence DisplayName="Else" sap2010:WorkflowViewState.IdRef="Sequence_7">
+          <ui:LogMessage DisplayName="Log no invoices today" sap2010:WorkflowViewState.IdRef="LogMessage_2" Level="Info" Message="[&quot;RF-07: no hay facturas procesadas hoy; no se envia reporte.&quot;]" />
+        </Sequence>
+      </If.Else>
+    </If>
+  </Sequence>
+</Activity>

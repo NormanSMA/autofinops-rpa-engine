@@ -26,7 +26,7 @@
 
 <img src="docs/demo/autofinops-demo.gif" alt="Demo AutoFinOps-NI" width="860" />
 
-[Video MP4 (38 s)](docs/demo/autofinops-demo.mp4)
+[Video MP4 (49 s)](docs/demo/autofinops-demo.mp4)
 
 </div>
 
@@ -46,7 +46,7 @@
 
 ```mermaid
 flowchart LR
-    A[Email / Inbox<br/>PDF] --> B[Dispatcher.xaml]
+    A[Email IMAP<br/>PDF] --> B[Dispatcher.xaml]
     B --> C[(Orchestrator<br/>Invoices_Queue)]
     C --> D[Main.xaml<br/>REFramework Performer]
     D <-->|SOAP| E[BCN<br/>tipo de cambio]
@@ -54,6 +54,7 @@ flowchart LR
     F --> G[vw_finops_kpis]
     G --> H[Metabase / Power BI]
     D --> I[Output/Processed<br/>Output/Business_Exceptions]
+    D -->|End Process| J[Excel + correo HTML<br/>a gerencia]
 ```
 
 Detalle: [docs/architecture.md](docs/architecture.md)
@@ -63,6 +64,8 @@ Detalle: [docs/architecture.md](docs/architecture.md)
 ```text
 PDF ─► Extract_Invoice_PDF ─► Get_BCN_ExchangeRate ─► Validate_Tax_Rules ─► Insert_PostgreSQL ─► mover PDF
         Read PDF + Regex        SOAP 36.6243           IVA 15% · IR 2%        factura + auditoría
+
+Fin de la cola ─► Send_Daily_Report ─► Reporte_Conciliacion_yyyyMMdd.xlsx + correo HTML a gerencia (RF-07)
 ```
 
 | Código | Excepción | Acción |
@@ -97,7 +100,22 @@ PDF ─► Extract_Invoice_PDF ─► Get_BCN_ExchangeRate ─► Validate_Tax_R
 <div align="center">
 <img src="docs/screenshots/metabase-dashboard.png" width="860" alt="Tablero Metabase" /><br/>
 <sub>Tablero Metabase conectado a <code>vw_finops_kpis</code></sub>
+<br/><br/>
+<img src="docs/screenshots/correo-reporte.png" width="520" alt="Correo de reporte a gerencia" /><br/>
+<sub>Correo HTML que el robot envía a gerencia, con el Excel adjunto (RF-07)</sub>
 </div>
+
+## Orchestrator
+
+| Recurso (carpeta Shared) | Uso |
+|---|---|
+| Paquete `AutoFinOps-NI` 1.0.0 | Publicado con `uip rpa pack` + `uip or packages upload` |
+| Proceso `AutoFinOps-NI Dispatcher` | Entry point `Dispatcher.xaml` |
+| Proceso `AutoFinOps-NI Performer` | Entry point `Main.xaml` |
+| Cola `Invoices_Queue` | 2 reintentos automáticos · referencia única |
+| Assets `PG_Credential`, `Mail_Credential` | Credenciales fuera del código |
+
+Con robot atendido se ejecuta desde UiPath Assistant. Lanzarlo desde Orchestrator o con un Queue Trigger requiere un runtime Unattended.
 
 Pruebas completas: [docs/pruebas-aceptacion.md](docs/pruebas-aceptacion.md)
 

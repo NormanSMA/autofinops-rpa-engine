@@ -7,7 +7,7 @@ Procesa únicamente demostraciones con proveedores, RUC y documentos ficticios.
 Describe el bot construido y las restricciones de `infra/init.sql`.
 
 Incluye recepción, extracción, clasificación, conversión, validación, persistencia y auditoría.
-Conserva reporte y notificación como RF-07 pendiente en los workflows revisados.
+Incluye RF-07 implementado mediante `Workflows/Send_Daily_Report.xaml`.
 Excluye pagos, declaraciones fiscales, registros tributarios externos y modificación del esquema.
 Usa PDF con texto para el recorrido básico.
 Reconoce `Read PDF Text` y Regex como extracción existente sin OCR.
@@ -40,6 +40,8 @@ Consulta el inventario completo de claves reales en [la guía](guia-uipath-refra
 | Settings | `BcnServiceUrl`, `BcnTimeoutMs` | `https://servicios.bcn.gob.ni/Tc_Servicio/ServicioTC.asmx`, `30000`. |
 | Settings | `MailEnabled`, `MailHost`, `MailPort`, `MailFolder` | `true`, `127.0.0.1`, `3143` (GreenMail), `INBOX`. |
 | Settings | `MailCredentialAssetName`, `MailSubjectFilter` | `Mail_Credential`, `Factura\|Invoice\|Cobro`. |
+| Settings | `ReportFolder`, `ReportRecipient` | `Data\Output\Reports`, `gerencia@autofinops.test`. |
+| Settings | `SmtpHost`, `SmtpPort` | `127.0.0.1`, `3025` (GreenMail). |
 | Constants | `MaxRetryNumber` | `0`. |
 | Constants | `RetryNumberGetTransactionItem`, `RetryNumberSetTransactionStatus` | `2`, `2`. |
 | Constants | `IvaRate`, `IrRate`, `IrThresholdNio`, `TaxTolerance` | `0.15`, `0.02`, `1000.00`, `0.05`. |
@@ -80,6 +82,28 @@ Ejecuta este recorrido dentro de `Framework/Process.xaml`:
 Conserva la respuesta informada de 36.6243 para la fecha de emisión 2026-10-20.
 Distingue esa referencia de una consulta ejecutada durante esta revisión documental.
 
+### RF-07: reporte diario implementado
+
+Invoca `Workflows/Send_Daily_Report.xaml` desde `End Process` de `Main.xaml`.
+Pasa `Config` como `in_Config` únicamente cuando `Config IsNot Nothing`.
+Captura errores mediante `TryCatch`; registra `Warn` y permite finalizar el proceso.
+Recupera `PG_Credential` y conecta mediante ODBC.
+Consulta facturas con `processed_at::date = CURRENT_DATE`.
+Consulta el resumen de `rpa_audit_logs` con `logged_at::date = CURRENT_DATE`.
+Cierra la conexión mediante `Disconnect` dentro de `Finally`.
+Genera `Data\Output\Reports\Reporte_Conciliacion_yyyyMMdd.xlsx` mediante `Write Range Workbook`.
+Usa la hoja `Conciliacion` sin requerir Excel instalado.
+Construye HTML mediante `Invoke Code` con tarjetas y tabla con estados en color.
+Incluye conciliadas, observadas, duplicadas BRE-03 y neto aprobado en las tarjetas.
+Cuenta duplicadas desde auditoría; suma neto aprobado únicamente para facturas conciliadas.
+Recupera `Mail_Credential` y envía HTML mediante `Send SMTP Email` a `ReportRecipient`.
+Adjunta el Excel; omite generación y envío cuando no existan facturas del día.
+
+Registra la prueba verificada del 2026-10-28 en GreenMail para `gerencia@autofinops.test`.
+Conserva el asunto `AutoFinOps-NI | Reporte de conciliacion 2026-10-28`.
+Registra HTML de 11,811 caracteres y adjunto de 8,072 bytes con 19 filas.
+Distingue esta evidencia informada de una nueva ejecución durante esta actualización documental.
+
 ## As-Is vs To-Be
 
 | Etapa | As-Is | To-Be |
@@ -91,7 +115,7 @@ Distingue esa referencia de una consulta ejecutada durante esta revisión docume
 | Validación | Revisa cálculos y RUC manualmente. | Aplica catálogo, tolerancia, IVA e IR parametrizados. |
 | Duplicidad | Busca coincidencias manualmente. | Aplica `uq_provider_invoice` sobre `provider_ruc` e `invoice_number`. |
 | Evidencia | Conserva registros dispersos. | Registra resultados en `rpa_audit_logs` y organiza los PDF. |
-| Reporte | Consolida hojas manualmente. | Conserva generación Excel y resumen HTML como RF-07 pendiente. |
+| Reporte | Consolida hojas manualmente. | Genera Excel diario y envía resumen HTML con adjunto mediante RF-07. |
 | Rendimiento | Usa 4,5 minutos como referencia del blueprint. | Mide duración real; valida experimentalmente la meta de 5,2 segundos. |
 | Calidad | Usa 4–7 % como referencia del blueprint. | Mide errores; evita presentar 0 % como resultado comprobado. |
 
@@ -105,7 +129,7 @@ Distingue esa referencia de una consulta ejecutada durante esta revisión docume
 | RF-04 | Consulta la tasa correspondiente a `issue_date`. | Convierte USD/NIO mediante una tasa positiva; evita sustituir errores por tasas ficticias. |
 | RF-05 | Valida RUC, suma, IVA e IR. | Aplica `TaxTolerance`, `IvaRate`, `IrRate` e `IrThresholdNio`; respeta exención y estado `CONCILIADA`. |
 | RF-06 | Persiste resultados y organiza PDF. | Respeta estados, tipos, obligatoriedad y unicidad de `infra/init.sql`. |
-| RF-07 | Conserva reporte diario y notificación HTML como pendientes. | Implementa y prueba ambos antes de declarar este requerimiento cumplido. |
+| RF-07 | Genera reporte diario y notificación HTML; marca implementado. | Usa `Send_Daily_Report`; comprueba Excel adjunto y entrega a `ReportRecipient`. |
 
 Usa estos centros de costo del catálogo activo:
 
@@ -250,7 +274,7 @@ Observa `auditWritten` para evitar otra auditoría BRE del resultado ya registra
 Audita SE mediante best effort solamente cuando exista conexión.
 Registra el fallo de auditoría SE en logs y propaga el error técnico original.
 No prometas una fila cuando PostgreSQL no permita persistencia.
-Reserva `processed_at` y `logged_at` como filtros para RF-07 pendiente.
+Usa `processed_at` y `logged_at` como filtros diarios de RF-07.
 Interpreta `vw_finops_kpis` como vista global del esquema.
 
 ## Diferencias con el blueprint
@@ -285,16 +309,42 @@ Ejecuta después `uip rpa run` con el entry point principal del Performer.
 9. Distingue auditoría SE persistida de auditoría best effort fallida por conexión no disponible.
 10. Prueba IMAP por separado; verifica errores sin atribuir códigos ni reintentos no implementados.
 11. Comprueba `FilePath`, `FileName`, referencia única y carpeta `Shared` para cada elemento.
-12. Conserva las pruebas de reporte y notificación pendientes hasta implementar RF-07.
+12. Comprueba RF-07: Excel en `Reports`, resumen HTML y adjunto recibido por `ReportRecipient`.
 
 Usa los PDF semilla originales para comprobar duplicidad contra registros existentes.
 Prueba las reglas fiscales con copias ficticias numeradas nuevamente.
 Comprueba NubeCentro sin IVA y sin IR: el proveedor tiene `is_tax_exempt = TRUE`.
 Comprueba netos 6775.50 NIO y 185.00 USD, iguales al dato semilla.
 
+## Despliegue en Orchestrator
+
+Registra la publicación verificada del 2026-10-28.
+Genera `AutoFinOps-NI.1.0.0.nupkg` mediante `uip rpa pack`.
+Carga el paquete mediante `uip or packages upload`.
+Identifica los procesos publicados en `Shared`:
+
+| Proceso | Entry point |
+| :--- | :--- |
+| `AutoFinOps-NI Dispatcher` | `Dispatcher.xaml` |
+| `AutoFinOps-NI Performer` | `Main.xaml` |
+
+Conserva `ReadPDFText.Item` como `ItemArgument` con `FileName` para empaquetar.
+Distingue esa exigencia de `pack` respecto de `build`, que no la exigía.
+Registra HTTP 409 al iniciar un job desde Orchestrator:
+
+```text
+Could not find a machine with Unattended or NonProduction runtimes
+```
+
+Considera la limitación del tenant: solo dispone de robot atendido.
+Ejecuta los procesos desde UiPath Assistant con ese robot.
+Asigna runtime `Unattended` para ejecutar mediante Queue Trigger.
+Consulta [Publicar en Orchestrator](guia-uipath-reframework.md#publicar-en-orchestrator) para los comandos.
+
 ## Límites de verificación
 
 Distingue la inspección de archivos de una ejecución integrada mediante `uip rpa run`.
 Verifica plantilla, versiones, driver instalado y configuración real de Orchestrator en el entorno operativo.
 Conserva esos datos como información declarada fuera de los archivos permitidos para esta revisión.
-No certifiques servicios, instalaciones ni RF-07 mediante esta revisión documental.
+Conserva RF-07 y publicación como hechos verificados informados del 2026-10-28.
+No atribuyas nuevas ejecuciones ni certificación de instalaciones a esta actualización documental.

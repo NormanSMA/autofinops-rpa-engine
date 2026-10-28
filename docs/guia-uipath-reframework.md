@@ -15,12 +15,12 @@ Consulta `infra/init.sql` como contrato de persistencia.
 | `UiPath.System.Activities` | 26.10.0 | Controla archivos, cola, argumentos y excepciones. |
 | `UiPath.PDF.Activities` | 4.3.0 | Extrae texto mediante `Read PDF Text`. |
 | `UiPath.Database.Activities` | 2.1.1 | Conecta mediante ODBC y ejecuta SQL parametrizado. |
-| `UiPath.Mail.Activities` | 2.12.10 | Recibe correos IMAP y guarda adjuntos PDF. |
+| `UiPath.Mail.Activities` | 2.12.10 | Recibe correos IMAP y envía reportes SMTP con adjunto. |
 | `UiPath.WebAPI.Activities` | 2.5.2 | Envía SOAP mediante `HTTP Request` POST. |
-| `UiPath.Excel.Activities` | 3.6.1 | Conserva la dependencia del proyecto; distingue el reporte pendiente. |
+| `UiPath.Excel.Activities` | 3.6.1 | Genera el reporte mediante `Write Range Workbook`, sin Excel instalado. |
 
 Conserva las versiones indicadas por el entorno construido.
-No atribuyas generación Excel ni envío HTML a los workflows revisados.
+Identifica RF-07 implementado mediante `Workflows/Send_Daily_Report.xaml`.
 
 ### Driver psqlODBC y DSN AutoFinOps_PG
 
@@ -38,7 +38,8 @@ Observa la conexión por intento mediante `Connect` y proveedor `System.Data.Odb
 Identifica `ConnectionSecureString` como propiedad utilizada por la actividad.
 Mantén las credenciales fuera de configuración, documentación y logs.
 Observa `Disconnect` dentro de `Finally` para cada intento.
-Usa `Mail_Credential` únicamente cuando `MailEnabled=true`.
+Usa `Mail_Credential` para recepción IMAP cuando `MailEnabled=true`.
+Usa también `Mail_Credential` para RF-07, independientemente de `MailEnabled`.
 
 ## Configuración existente
 
@@ -65,6 +66,10 @@ Usa las siguientes claves reales del archivo.
 | Settings | `MailFolder` | `INBOX` | Selecciona la carpeta IMAP. |
 | Settings | `MailCredentialAssetName` | `Mail_Credential` | Selecciona el Asset de correo. |
 | Settings | `MailSubjectFilter` | `Factura\|Invoice\|Cobro` | Filtra asuntos mediante Regex. |
+| Settings | `ReportFolder` | `Data\Output\Reports` | Conserva el Excel diario. |
+| Settings | `ReportRecipient` | `gerencia@autofinops.test` | Recibe el HTML y el Excel adjunto. |
+| Settings | `SmtpHost` | `127.0.0.1` | Selecciona SMTP de GreenMail. |
+| Settings | `SmtpPort` | `3025` | Selecciona el puerto SMTP local. |
 | Constants | `MaxRetryNumber` | `0` | Desactiva los reintentos transaccionales locales. |
 | Constants | `MaxConsecutiveSystemExceptions` | `0` | Conserva el valor de la plantilla. |
 | Constants | `ExScreenshotsFolderPath` | `Exceptions_Screenshots` | Define la carpeta de capturas del framework. |
@@ -361,6 +366,113 @@ Deja los identificadores y fechas automáticos bajo responsabilidad de PostgreSQ
 Distingue los dos comandos secuenciales de una transacción atómica explícita.
 No atribuyas rollback, recuperación del identificador ni clasificación de SQLSTATE a este workflow.
 
+## Workflows/Send_Daily_Report.xaml
+
+### Argumentos existentes
+
+| Dirección | Argumento | Tipo |
+| :--- | :--- | :--- |
+| In | `in_Config` | `Dictionary(Of String, Object)` |
+
+Identifica RF-07 como implementado.
+Observa la invocación desde `End Process` de `Main.xaml`, después de `CloseAllApplications`.
+Pasa `Config` como `in_Config` cuando `Config IsNot Nothing`.
+Captura errores mediante `TryCatch`; registra `Warn` sin detener el proceso.
+
+### Actividades en orden
+
+1. Crea `ReportFolder` mediante `Create Folder`.
+2. Asigna `reportPath` mediante `Assign` con nombre `Reporte_Conciliacion_yyyyMMdd.xlsx`.
+3. Recupera `PG_Credential` mediante `Get Credential` en `Shared`.
+4. Abre ODBC mediante `Connect`, `PostgreSqlDsn` y `ConnectionSecureString`.
+5. Ejecuta `Run Query` sobre `invoices_reconciliation`, filtrando `processed_at::date = CURRENT_DATE`.
+6. Ejecuta `Run Query` sobre `rpa_audit_logs`, filtrando `logged_at::date = CURRENT_DATE`.
+7. Agrupa auditoría por `COALESCE(error_code, 'SUCCESS')` y cuenta intentos.
+8. Cierra ODBC mediante `Disconnect` dentro de `Finally`, cuando exista conexión.
+9. Comprueba `dt_Report IsNot Nothing AndAlso dt_Report.Rows.Count > 0`.
+10. Escribe `dt_Report` mediante `Write Range Workbook`, con encabezados desde `A1`.
+11. Usa `Data\Output\Reports\Reporte_Conciliacion_yyyyMMdd.xlsx`, hoja `Conciliacion`, sin Excel instalado.
+12. Construye el resumen HTML mediante `Invoke Code`.
+13. Recupera `Mail_Credential` mediante `Get Credential` en `Shared`.
+14. Envía HTML a `ReportRecipient` mediante `Send SMTP Email`, con el Excel adjunto.
+15. Usa `SmtpHost`, `SmtpPort` y las credenciales del Asset para SMTP.
+16. Registra el envío mediante `Log Message` con nivel `Info`.
+
+Incluye tarjetas de conciliadas, observadas, duplicadas BRE-03 y neto aprobado.
+Cuenta duplicadas desde auditoría; suma neto aprobado únicamente para facturas conciliadas.
+Incluye tabla de facturas con estados en color.
+Usa el asunto `AutoFinOps-NI | Reporte de conciliacion yyyy-MM-dd` con la fecha actual.
+Omite Excel y correo cuando no existan facturas del día; registra `Info`.
+Considera ambos filtros diarios según `CURRENT_DATE` de PostgreSQL.
+
+### Prueba manual
+
+1. Comprueba PostgreSQL y GreenMail del entorno local.
+2. Comprueba `PG_Credential`, `Mail_Credential` y el DSN bajo la cuenta del robot.
+3. Comprueba `ReportFolder`, `ReportRecipient`, `SmtpHost` y `SmtpPort` en `Data/Config.json`.
+4. Procesa facturas ficticias del día y termina el Performer normalmente.
+5. Comprueba el archivo diario en `Data\Output\Reports` y la hoja `Conciliacion`.
+6. Consulta el buzón GreenMail de `ReportRecipient` mediante IMAP local, puerto `3143`.
+7. Comprueba asunto, tarjetas HTML, tabla de estados y Excel adjunto.
+8. Compara las filas del Excel con las facturas seleccionadas por el filtro diario.
+
+Conserva la evidencia verificada del 2026-10-28:
+
+| Evidencia | Resultado |
+| :--- | :--- |
+| Buzón receptor | `gerencia@autofinops.test` en GreenMail. |
+| Asunto | `AutoFinOps-NI \| Reporte de conciliacion 2026-10-28` |
+| HTML | 11,811 caracteres. |
+| Excel adjunto | 8,072 bytes; 19 filas. |
+
+Distingue esta evidencia informada de una nueva ejecución durante esta actualización documental.
+
+## Publicar en Orchestrator
+
+Usa una sesión autenticada de `uip` con acceso al tenant correspondiente.
+Ejecuta desde `C:\Proyectos\Personal\autofinops-rpa-engine\uipath_workflow`.
+Consulta la ayuda para completar los argumentos exigidos por la versión instalada:
+
+```powershell
+uip rpa pack --help
+uip or packages upload --help
+uip or processes create --help
+```
+
+Completa cada comando con los argumentos indicados por esa ayuda.
+Usa esta secuencia y los valores de la tabla:
+
+```powershell
+uip rpa pack
+uip or packages upload
+uip or processes create
+uip or processes create
+```
+
+| Comando | Valores para completar argumentos |
+| :--- | :--- |
+| `uip rpa pack` | Proyecto actual; paquete `AutoFinOps-NI`; versión `1.0.0`; salida `AutoFinOps-NI.1.0.0.nupkg`. |
+| `uip or packages upload` | Archivo `AutoFinOps-NI.1.0.0.nupkg` generado por `pack`. |
+| Primer `uip or processes create` | Carpeta `Shared`; nombre `AutoFinOps-NI Dispatcher`; paquete `AutoFinOps-NI`; versión `1.0.0`; entry point `Dispatcher.xaml`. |
+| Segundo `uip or processes create` | Carpeta `Shared`; nombre `AutoFinOps-NI Performer`; paquete `AutoFinOps-NI`; versión `1.0.0`; entry point `Main.xaml`. |
+
+Conserva la publicación verificada del paquete y ambos procesos del 2026-10-28.
+Conserva el bloque `ReadPDFText.Item`, con `ItemArgument` y `FileName`, antes de empaquetar.
+Reconoce esa exigencia de `uip rpa pack`, ausente durante `build`.
+
+### Runtime para ejecutar
+
+Registra HTTP 409 al iniciar el job desde Orchestrator durante la prueba verificada:
+
+```text
+Could not find a machine with Unattended or NonProduction runtimes
+```
+
+Identifica el tenant probado con robot atendido únicamente.
+Ejecuta `AutoFinOps-NI Dispatcher` y `AutoFinOps-NI Performer` desde UiPath Assistant.
+Asigna runtime `Unattended` para ejecutar mediante Queue Trigger.
+Distingue publicación completada de ejecución desatendida bloqueada por disponibilidad de runtime.
+
 ## Pruebas con uip rpa run
 
 Usa una sesión del robot con acceso a Orchestrator y PostgreSQL.
@@ -403,6 +515,7 @@ Comprueba NubeCentro exento sin IVA ni IR con datos compatibles.
 Distingue la inspección estática de una ejecución integrada del robot.
 Conserva plantilla, paquetes, Studio y driver como datos del entorno declarado.
 Verifica esos datos operativos fuera de la lista de archivos revisados antes de certificar instalaciones.
-Conserva RF-07 como pendiente: los workflows revisados no generan reporte ni envían resumen HTML.
+Conserva RF-07 y publicación como hechos verificados informados del 2026-10-28.
+No atribuyas nuevas ejecuciones a esta actualización documental.
 No atribuyas recuperación automática de auditoría ni movimiento final técnico al bot actual.
 Registra cualquier impedimento de `uip rpa run` antes de afirmar una ejecución correcta.

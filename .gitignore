@@ -15,6 +15,7 @@ Output/
 **/.local/
 **/.screenshots/
 *.nupkg
+dist/
 uipath_workflow/Exceptions_Screenshots/*
 !uipath_workflow/Exceptions_Screenshots/placeholder.txt
 uipath_workflow/Data/Temp/*
